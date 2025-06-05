@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts",
+    "studio": "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sitecontroller npx prisma studio"
   },
   "keywords": [],
   "author": "",
@@ -14,12 +15,12 @@
     "@types/dotenv": "^6.1.1",
     "@types/express": "^5.0.2",
     "@types/node": "^22.15.29",
-    "prisma": "^6.9.0",
+    "prisma": "5.10.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@prisma/client": "^6.9.0",
+    "@prisma/client": "5.10.2",
     "dotenv": "^16.5.0",
     "express": "^5.1.0"
   }

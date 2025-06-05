@@ -7,6 +7,8 @@ services:
       POSTGRES_DB: sitecontroller
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   app:
     build: .
@@ -17,3 +19,7 @@ services:
     env_file: .env
     volumes:
       - .:/app 
+
+volumes:
+  postgres_data:
+    name: pae_site_collector_postgres_data 

@@ -6,6 +6,9 @@ up:
 down:
 	docker-compose -f docker-compose.yml down
 
+down-rm:
+	docker-compose -f docker-compose.yml down --rmi all
+
 build:
 	docker-compose -f docker-compose.yml build
 
