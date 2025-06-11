@@ -1,25 +1,55 @@
+version: '3'
 services:
-  db:
-    image: postgres:14
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: sitecontroller
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  directus:
+    image: directus/directus:10.10
+    ports:
+      - "8055:8055"
+    environment:
+      KEY: "replace-with-random-key"
+      SECRET: "replace-with-random-secret"
+      ADMIN_EMAIL: "admin@example.com"
+      ADMIN_PASSWORD: "directus-admin"
+      DB_CLIENT: "pg"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_DATABASE: "sitecontroller"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
+    depends_on:
+      - postgres
+    networks:
+      - app-network
 
   app:
     build: .
     ports:
       - "3000:3000"
     depends_on:
-      - db
+      - postgres
+      - directus
     env_file: .env
     volumes:
-      - .:/app 
+      - .:/app
+    networks:
+      - app-network
 
 volumes:
   postgres_data:
-    name: pae_site_collector_postgres_data 
+    name: pae_site_collector_postgres_data
+
+networks:
+  app-network:
+    driver: bridge 
