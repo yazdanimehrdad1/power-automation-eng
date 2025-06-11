@@ -10,16 +10,26 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:8.0
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
   app:
     build: .
     ports:
       - "3000:3000"
     depends_on:
       - db
+      - redis
     env_file: .env
     volumes:
       - .:/app 
 
 volumes:
   postgres_data:
-    name: pae_site_collector_postgres_data 
+    name: pae_site_collector_postgres_data
+  redis_data:
+    name: pae_site_collector_redis_data 
