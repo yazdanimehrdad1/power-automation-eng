@@ -6,22 +6,28 @@ export interface CacheOptions {
   keyPrefix?: string;  // Prefix for generated keys
 }
 
+type MethodDecorator = <T>(
+  target: Object,
+  propertyKey: string | symbol,
+  descriptor: TypedPropertyDescriptor<T>
+) => TypedPropertyDescriptor<T> | void;
+
 /**
  * Cache decorator for methods
  * @param options Cache options
  */
-export function Cache(options: CacheOptions = {}) {
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor
+export function Cache(options: CacheOptions = {}): MethodDecorator {
+  return function <T>(
+    target: Object,
+    propertyKey: string | symbol,
+    descriptor: TypedPropertyDescriptor<T>
   ) {
-    const originalMethod = descriptor.value;
+    const originalMethod = descriptor.value as Function;
 
     descriptor.value = async function (...args: any[]) {
       // Generate cache key
       const cacheKey = options.key || 
-        `${options.keyPrefix || ''}:${propertyKey}:${JSON.stringify(args)}`;
+        `${options.keyPrefix || ''}:${String(propertyKey)}:${JSON.stringify(args)}`;
 
       // Try to get from cache
       const cachedValue = await RedisUtils.get(cacheKey);
@@ -40,7 +46,7 @@ export function Cache(options: CacheOptions = {}) {
       }
 
       return result;
-    };
+    } as unknown as T;
 
     return descriptor;
   };

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { SiteService } from '../services/site.service';
+import { SiteService } from '../services/sites';
 
 export class SiteController {
   private siteService: SiteService;

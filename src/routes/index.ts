@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import sitesRouter from './sites';
+import siteRoutes from './sites';
 
 const router = Router();
 
-router.use('/sites', sitesRouter);
+// Mount routes
+router.use('/sites', siteRoutes);
 
 export default router;
