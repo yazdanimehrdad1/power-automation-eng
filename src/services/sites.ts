@@ -28,28 +28,44 @@ type SiteWithAssets = {
 
 export class SiteService {
   private prisma: PrismaClient;
+  private readonly CACHE_TTL = 3600; // 1 hour in seconds
 
   constructor() {
     this.prisma = prisma;
   }
 
   async getAllSites(): Promise<SiteWithAssets[]> {
-    // TODO: Implement caching
-    return this.prisma.site.findMany({
+    const cacheKey = 'sites:getAllSites';
+    const cached = await RedisUtils.get<SiteWithAssets[]>(cacheKey);
+    if (cached) return cached;
+
+    const sites = await this.prisma.site.findMany({
       include: {
         assets: true
       }
     });
+    
+    await RedisUtils.set(cacheKey, sites, this.CACHE_TTL);
+    return sites;
   }
 
   async getSiteById(id: string): Promise<SiteWithAssets | null> {
-    // TODO: Implement caching
-    return this.prisma.site.findUnique({
+    const cacheKey = `site:${id}`;
+    const cached = await RedisUtils.get<SiteWithAssets>(cacheKey);
+    if (cached) return cached;
+
+    const site = await this.prisma.site.findUnique({
       where: { id },
       include: {
         assets: true
       }
     });
+
+    if (site) {
+      await RedisUtils.set(cacheKey, site, this.CACHE_TTL);
+    }
+    
+    return site;
   }
 
   async createSite(data: { name: string; address: string }): Promise<SiteWithAssets> {
@@ -59,8 +75,14 @@ export class SiteService {
         assets: true
       }
     });
-    // Invalidate cache after create
-    await this.invalidateCache();
+
+    // Write-through: Update cache immediately
+    await Promise.all([
+      RedisUtils.set(`site:${site.id}`, site, this.CACHE_TTL),
+      // Invalidate the "all sites" cache since it needs to include the new site
+      RedisUtils.delete('sites:getAllSites')
+    ]);
+
     return site;
   }
 
@@ -72,8 +94,14 @@ export class SiteService {
         assets: true
       }
     });
-    // Invalidate cache after update
-    await this.invalidateCache();
+
+    // Write-through: Update cache immediately
+    await Promise.all([
+      RedisUtils.set(`site:${site.id}`, site, this.CACHE_TTL),
+      // Invalidate the "all sites" cache since it might include the updated site
+      RedisUtils.delete('sites:getAllSites')
+    ]);
+
     return site;
   }
 
@@ -84,20 +112,26 @@ export class SiteService {
         assets: true
       }
     });
-    // Invalidate cache after delete
-    await this.invalidateCache();
+
+    // Write-through: Remove from cache immediately
+    await Promise.all([
+      RedisUtils.delete(`site:${id}`),
+      // Invalidate the "all sites" cache since it includes the deleted site
+      RedisUtils.delete('sites:getAllSites')
+    ]);
+
     return site;
   }
 
+  // This method is kept for potential bulk operations or manual cache invalidation
   private async invalidateCache(): Promise<void> {
-    // Invalidate all site-related caches
     const keys = await this.prisma.site.findMany({
       select: { id: true }
     });
     
-    for (const site of keys) {
-      await RedisUtils.delete(`site:${site.id}`);
-    }
-    await RedisUtils.delete('sites:getAllSites');
+    await Promise.all([
+      ...keys.map((site: { id: string }) => RedisUtils.delete(`site:${site.id}`)),
+      RedisUtils.delete('sites:getAllSites')
+    ]);
   }
 } 
